@@ -18,21 +18,29 @@ app.use("/*", serveStatic({ root: "./public" }));
 let collectionId = 1;
 let itemId = 8;
 
+let imageUrl = "";
 app.frame("/", async (c) => {
 	let alreadyMinted = false;
 	let account: Account | null = null;
-	const isMint = c.buttonValue === "mint";
-	let imageUrl = "linear-gradient(to right, #432889, #17101F)";
+	let isMint = c.buttonValue === "mint";
+	let img1 = "https://picsum.photos/700/600";
 	const api = await ApiPromise.create({ provider });
 
-	const nfts = await api.query.templateModule.nfts(collectionId, itemId);
-	// console.log(nfts.toJSON());
-	const json = nfts.toJSON();
-	console.log(json);
-	imageUrl = hexToBytes(json.metadata);
-	const img1 = await fetch(imageUrl);
-	// console.log(img1);
-
+	if (imageUrl !== "" && !isMint) {
+		const nfts = await api.query.templateModule.nfts(
+			collectionId,
+			itemId
+		);
+		// console.log(nfts.toJSON());
+		const json = nfts.toJSON();
+		console.log(isMint);
+		imageUrl = hexToBytes(json.metadata);
+		const f = await fetch(imageUrl);
+		img1 = f.url;
+		console.log(img1);
+		// console.log(img1);
+	}
+	console.log(img1);
 	if (c.frameData && isMint) {
 		account = await fetch(
 			`https://fnames.farcaster.xyz/transfers?fid=${c.frameData.fid}`
@@ -41,8 +49,43 @@ app.frame("/", async (c) => {
 			.then((r) => r.transfers[0]);
 
 		const tokenId = c.frameData.timestamp;
-		console.log(isMint);
+
+		// const a = await api.tx.templateModule.mint(
+		// 	collectionId,
+		// 	itemId + 1,
+		// 	"https://picsum.photos/700/600",
+		// 	"5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+		// 	true
+		// );
+		// console.log(a);
+		// return c.res({
+		// 	image: (
+		// 		<div
+		// 			style={{
+		// 				display: "flex",
+		// 				width: "100%",
+		// 				height: "100%",
+		// 				justifyContent: "center",
+		// 				alignItems: "center",
+		// 				backgroundImage: `url("${img1.url}")`,
+		// 				// backgroundSize: "cover",
+		// 				backgroundRepeat: "no-repeat",
+		// 				backgroundPosition: "center centre",
+		// 				backgroundSize: "cover",
+		// 			}}>
+		// 			<span style={{ color: "white", fontSize: "50px" }}>
+		// 				{`NFT Minted to ${account.username} 🏆`}
+		// 			</span>
+		// 		</div>
+		// 	),
+		// 	intents: [
+		// 		<Button.Redirect location={`${NEXT_PUBLIC_URL}/check`}>
+		// 			Check Minted
+		// 		</Button.Redirect>,
+		// 	],
+		// });
 	}
+	// isMint = false;
 
 	return c.res({
 		image: (
@@ -53,7 +96,7 @@ app.frame("/", async (c) => {
 					height: "100%",
 					justifyContent: "center",
 					alignItems: "center",
-					backgroundImage: `url("${img1.url}")`,
+					backgroundImage: `url("${img1}")`,
 					// backgroundSize: "cover",
 					backgroundRepeat: "no-repeat",
 					backgroundPosition: "center centre",
@@ -70,22 +113,14 @@ app.frame("/", async (c) => {
 		),
 		intents: isMint
 			? [
-					<Button.Redirect location={`${NEXT_PUBLIC_URL}/check`}>
+					<Button.Redirect location="/check">
 						Check Minted
 					</Button.Redirect>,
 			  ]
-			: [
-					<Button value="mint" action="/performMint">
-						Mint
-					</Button>,
-			  ],
+			: [<Button value="mint">Mint</Button>],
 	});
 });
 
-app.post("/performMint", (c) => {
-	console.log("per");
-	return c.redirect("/check");
-});
 app.post("/check", (c) => {
 	console.log("check");
 	return c.redirect("/");
